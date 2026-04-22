@@ -1,60 +1,108 @@
 #ifndef MEMSCOPE_PROGRAM_H
 #define MEMSCOPE_PROGRAM_H
 
-#include <stddef.h>
+#include <iosfwd>
+#include <string>
+#include <vector>
 
-#define MAX_GLOBALS 3
-#define MAX_FUNCTIONS 5
-#define MAX_PARAMS 3
-#define MAX_LOCALS 4
-#define MAX_OPERATIONS 16
+enum class OperationKind {
+    AssignInt,
+    AssignSum,
+    Call,
+    AssignCall,
+    ReturnVoid,
+    ReturnValue
+};
 
-typedef enum OperationKind {
-    OP_ASSIGN_INT,
-    OP_ASSIGN_SUM,
-    OP_CALL,
-    OP_ASSIGN_CALL,
-    OP_RETURN_VOID,
-    OP_RETURN_VALUE
-} OperationKind;
+class Variable {
+public:
+    Variable(std::string name = "", int address = 0, int value = 0);
 
-typedef struct Variable {
-    char name[4];
-    int address;
-    int value;
-} Variable;
+    const std::string &getName() const;
+    int getAddress() const;
+    int getValue() const;
+    std::string declarationText() const;
 
-typedef struct Operation {
-    OperationKind kind;
-    char dest[4];
-    char lhs[4];
-    char rhs[4];
-    char callee[4];
-    int number;
-    int bytecode_address;
-    int bytecode_size;
-} Operation;
+private:
+    std::string name_;
+    int address_;
+    int value_;
+};
 
-typedef struct Function {
-    char name[4];
-    Variable params[MAX_PARAMS];
-    int param_count;
-    Variable locals[MAX_LOCALS];
-    int local_count;
-    Operation operations[MAX_OPERATIONS];
-    int operation_count;
-    int code_address;
-} Function;
+class Operation {
+public:
+    Operation(OperationKind kind,
+              std::string dest,
+              std::string lhs,
+              std::string rhs,
+              std::string callee,
+              int number,
+              int bytecodeAddress,
+              int bytecodeSize);
 
-typedef struct Program {
-    unsigned int program_id;
-    Variable globals[MAX_GLOBALS];
-    int global_count;
-    Function functions[MAX_FUNCTIONS];
-    int function_count;
-} Program;
+    int getBytecodeAddress() const;
+    int getBytecodeSize() const;
+    std::string sourceText() const;
+    std::string bytecodeText() const;
 
-void program_print_source(const Program *program);
-void program_print_bytecode(const Program *program);
+private:
+    OperationKind kind_;
+    std::string dest_;
+    std::string lhs_;
+    std::string rhs_;
+    std::string callee_;
+    int number_;
+    int bytecodeAddress_;
+    int bytecodeSize_;
+};
+
+class Function {
+public:
+    Function(std::string name = "", int codeAddress = 0);
+
+    void addLocal(const std::string &name, int address, int value = 0);
+    void addOperation(OperationKind kind,
+                      const std::string &dest,
+                      const std::string &lhs,
+                      const std::string &rhs,
+                      const std::string &callee,
+                      int number,
+                      int bytecodeAddress,
+                      int bytecodeSize);
+
+    const std::string &getName() const;
+    int getCodeAddress() const;
+    const std::vector<Variable> &getLocals() const;
+    const std::vector<Operation> &getOperations() const;
+
+private:
+    std::string name_;
+    int codeAddress_;
+    std::vector<Variable> params_;
+    std::vector<Variable> locals_;
+    std::vector<Operation> operations_;
+};
+
+class Program {
+public:
+    Program();
+
+    void setProgramId(unsigned int programId);
+    unsigned int getProgramId() const;
+
+    void addGlobal(const std::string &name, int address, int value = 0);
+    Function &addFunction(const std::string &name, int codeAddress);
+
+    const std::vector<Variable> &getGlobals() const;
+    const std::vector<Function> &getFunctions() const;
+
+    void printSource(std::ostream &out) const;
+    void printBytecode(std::ostream &out) const;
+
+private:
+    unsigned int programId_;
+    std::vector<Variable> globals_;
+    std::vector<Function> functions_;
+};
 
 #endif

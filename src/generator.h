@@ -3,6 +3,9 @@
 
 #include "program.h"
 
-void generator_build_program(Program *program, unsigned int seed);
+class ProgramGenerator {
+public:
+    Program build(unsigned int seed) const;
+};
 
 #endif

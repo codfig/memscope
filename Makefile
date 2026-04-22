@@ -1,11 +1,11 @@
-CC ?= gcc
-CFLAGS ?= -std=c11 -Wall -Wextra -pedantic -O2
+CXX ?= g++
+CXXFLAGS ?= -std=c++17 -Wall -Wextra -pedantic -O2
 
-SRC := src/main.c src/program.c src/memory.c src/generator.c
-OBJ := $(SRC:.c=.o)
+SRC := src/main.cpp src/program.cpp src/memory.cpp src/generator.cpp
+OBJ := $(SRC:.cpp=.o)
 
 memscope: $(OBJ)
-	$(CC) $(CFLAGS) -o $@ $(OBJ)
+	$(CXX) $(CXXFLAGS) -o $@ $(OBJ)
 
 clean:
 	rm -f $(OBJ) memscope
