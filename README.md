@@ -8,19 +8,20 @@ The interface is textual. In normal mode, the program runs all at once, prints t
 
 s## Versions and incremental development
 
+
 The simplest version has no interactive mode and no heap allocation. This keeps the codebase smaller and more approachable for students. This repository can also be used as a programming assignment.
 
 The next version includes interactive mode.
 
 The full-fledged version includes heap allocation.
 
-Each version has a separate branch in the version control system (`git`): `bare`, `noheap`, and `master`.
+Each version has a separate branch in the version control system (`git`): `no-prompt-no-heap`, `noheap`, and `master`.
 
-This is a C++ project, but there is also a branch implemented in plain C, called `bare-c`.
+This is a C++ project, but there is also a branch implemented in plain C, called `sprout-in-c`.
 
 ## Usage
 
-### bare-c
+### sprout-in-c
 ```bash
 $ ./memscope
 ```

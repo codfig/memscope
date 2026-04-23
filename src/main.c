@@ -21,7 +21,7 @@ int main(int argc, char **argv) {
     memory_init(&memory);
     memory_load_program(&memory, &program);
 
-    printf("memscope bare-c prototype\n");
+    printf("memscope sprout-in-c prototype\n");
     printf("=========================\n");
     printf("Mode: non-interactive\n");
     printf("Heap allocation: disabled in this branch stage\n\n");

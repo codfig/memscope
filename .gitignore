@@ -1,0 +1,32 @@
+# Compiled object files
+*.o
+
+# Executable files
+memscope
+
+# Build directories
+/build/
+
+# Editor/IDE files
+*.swp
+*.swo
+*.bak
+*~
+.vscode/
+.idea/
+.DS_Store
+
+# Logs
+*.log
+
+# OS generated files
+Thumbs.db
+
+# CMake and Make
+CMakeFiles/
+CMakeCache.txt
+Makefile
+cmake_install.cmake
+
+# Python cache (if any scripts)
+__pycache__/
