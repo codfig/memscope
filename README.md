@@ -14,13 +14,13 @@ The next version includes interactive mode.
 
 The full-fledged version includes heap allocation.
 
-Each version has a separate branch in the version control system (`git`): `bare`, `noheap`, and `master`.
+Each version has a separate branch in the version control system (`git`): `no-prompt-no-heap`, `no-heap`, and `master`.
 
-This is a C++ project, but there is also a branch implemented in plain C, called `bare-c`.
+This is a C++ project, but there is also a branch implemented in plain C, called `sprout-in-c`.
 
 ## Usage
 
-### bare-c
+### sprout-in-c
 ```bash
 $ ./memscope
 ```

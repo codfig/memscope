@@ -22,7 +22,7 @@ int main(int argc, char **argv) {
 
     memory.loadProgram(program);
 
-    cout << "memscope bare prototype\n";
+    cout << "memscope no-prompt-no-heap prototype\n";
     cout << "=======================\n";
     cout << "Language: C++17\n";
     cout << "Mode: non-interactive\n";
