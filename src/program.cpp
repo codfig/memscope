@@ -1,9 +1,26 @@
 #include "program.h"
 
+#include <iomanip>
 #include <iostream>
+#include <sstream>
 #include <string>
+#include <vector>
 
 using namespace std;
+
+namespace {
+
+string formatAddressPart(int value) {
+    ostringstream out;
+    out << setw(2) << setfill('0') << value;
+    return out.str();
+}
+
+vector<string> splitAddress(int address) {
+    return {formatAddressPart(address / 100), formatAddressPart(address % 100)};
+}
+
+} // namespace
 
 Variable::Variable(string name, int address, int value)
     : name_(move(name)), address_(address), value_(value) {
@@ -32,7 +49,11 @@ Operation::Operation(OperationKind kind,
                      string callee,
                      int number,
                      int bytecodeAddress,
-                     int bytecodeSize)
+                     int bytecodeSize,
+                     int destAddress,
+                     int lhsAddress,
+                     int rhsAddress,
+                     int calleeAddress)
     : kind_(kind),
       dest_(move(dest)),
       lhs_(move(lhs)),
@@ -40,7 +61,19 @@ Operation::Operation(OperationKind kind,
       callee_(move(callee)),
       number_(number),
       bytecodeAddress_(bytecodeAddress),
-      bytecodeSize_(bytecodeSize) {
+      bytecodeSize_(bytecodeSize),
+      destAddress_(destAddress),
+      lhsAddress_(lhsAddress),
+      rhsAddress_(rhsAddress),
+      calleeAddress_(calleeAddress) {
+}
+
+OperationKind Operation::getKind() const {
+    return kind_;
+}
+
+const string &Operation::getCallee() const {
+    return callee_;
 }
 
 int Operation::getBytecodeAddress() const {
@@ -71,24 +104,56 @@ string Operation::sourceText() const {
 }
 
 string Operation::bytecodeText() const {
-    switch (kind_) {
-    case OperationKind::AssignInt:
-        return "01 <" + to_string(bytecodeAddress_ / 100) + "> <" +
-               to_string(bytecodeAddress_ % 100) + "> <" +
-               to_string(number_) + ">";
-    case OperationKind::AssignSum:
-        return "02 <" + dest_ + "> <" + lhs_ + "> <" + rhs_ + ">";
-    case OperationKind::Call:
-        return "03 <" + callee_ + ">";
-    case OperationKind::AssignCall:
-        return "04 <" + dest_ + "> <" + callee_ + ">";
-    case OperationKind::ReturnVoid:
-        return "05";
-    case OperationKind::ReturnValue:
-        return "06 <" + lhs_ + ">";
+    const vector<string> bytes = bytecodeCells();
+    if (bytes.empty()) {
+        return "-";
     }
 
-    return "?";
+    ostringstream out;
+    for (size_t i = 0; i < bytes.size(); ++i) {
+        if (i != 0) {
+            out << ' ';
+        }
+        out << bytes[i];
+    }
+
+    return out.str();
+}
+
+vector<string> Operation::bytecodeCells() const {
+    switch (kind_) {
+    case OperationKind::AssignInt:
+        return {"01",
+                splitAddress(destAddress_)[0],
+                splitAddress(destAddress_)[1],
+                formatAddressPart(number_)};
+    case OperationKind::AssignSum:
+        return {"02",
+                splitAddress(destAddress_)[0],
+                splitAddress(destAddress_)[1],
+                splitAddress(lhsAddress_)[0],
+                splitAddress(lhsAddress_)[1],
+                splitAddress(rhsAddress_)[0],
+                splitAddress(rhsAddress_)[1]};
+    case OperationKind::Call:
+        return {"03",
+                splitAddress(calleeAddress_)[0],
+                splitAddress(calleeAddress_)[1]};
+    case OperationKind::AssignCall:
+        return {"04",
+                splitAddress(destAddress_)[0],
+                splitAddress(destAddress_)[1],
+                splitAddress(calleeAddress_)[0],
+                splitAddress(calleeAddress_)[1]};
+    case OperationKind::ReturnVoid:
+        return {"05"};
+    case OperationKind::ReturnValue:
+        return {"06",
+                splitAddress(lhsAddress_)[0],
+                splitAddress(lhsAddress_)[1]};
+    }
+
+    return {};
 }
 
 Function::Function(string name, int codeAddress)
@@ -106,8 +171,23 @@ void Function::addOperation(OperationKind kind,
                             const string &callee,
                             int number,
                             int bytecodeAddress,
-                            int bytecodeSize) {
-    operations_.emplace_back(kind, dest, lhs, rhs, callee, number, bytecodeAddress, bytecodeSize);
+                            int bytecodeSize,
+                            int destAddress,
+                            int lhsAddress,
+                            int rhsAddress,
+                            int calleeAddress) {
+    operations_.emplace_back(kind,
+                             dest,
+                             lhs,
+                             rhs,
+                             callee,
+                             number,
+                             bytecodeAddress,
+                             bytecodeSize,
+                             destAddress,
+                             lhsAddress,
+                             rhsAddress,
+                             calleeAddress);
 }
 
 const string &Function::getName() const {

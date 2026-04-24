@@ -38,12 +38,19 @@ public:
               std::string callee,
               int number,
               int bytecodeAddress,
-              int bytecodeSize);
+              int bytecodeSize,
+              int destAddress = 0,
+              int lhsAddress = 0,
+              int rhsAddress = 0,
+              int calleeAddress = 0);
 
+    OperationKind getKind() const;
+    const std::string &getCallee() const;
     int getBytecodeAddress() const;
     int getBytecodeSize() const;
     std::string sourceText() const;
     std::string bytecodeText() const;
+    std::vector<std::string> bytecodeCells() const;
 
 private:
     OperationKind kind_;
@@ -54,6 +61,10 @@ private:
     int number_;
     int bytecodeAddress_;
     int bytecodeSize_;
+    int destAddress_;
+    int lhsAddress_;
+    int rhsAddress_;
+    int calleeAddress_;
 };
 
 class Function {
@@ -68,7 +79,11 @@ public:
                       const std::string &callee,
                       int number,
                       int bytecodeAddress,
-                      int bytecodeSize);
+                      int bytecodeSize,
+                      int destAddress = 0,
+                      int lhsAddress = 0,
+                      int rhsAddress = 0,
+                      int calleeAddress = 0);
 
     const std::string &getName() const;
     int getCodeAddress() const;

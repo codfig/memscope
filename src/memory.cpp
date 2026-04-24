@@ -1,8 +1,50 @@
 #include "memory.h"
 
+#include <algorithm>
+#include <iomanip>
 #include <iostream>
+#include <sstream>
+#include <vector>
 
 using namespace std;
+
+namespace {
+
+const Function *findFunctionByName(const Program &program, const string &name) {
+    for (const Function &function : program.getFunctions()) {
+        if (function.getName() == name) {
+            return &function;
+        }
+    }
+
+    return nullptr;
+}
+
+const Function *findMainFunction(const Program &program) {
+    if (const Function *mainFunction = findFunctionByName(program, "m4")) {
+        return mainFunction;
+    }
+
+    const vector<Function> &functions = program.getFunctions();
+    if (functions.empty()) {
+        return nullptr;
+    }
+
+    return &functions.back();
+}
+
+const Operation *findPrimaryCall(const Function &function) {
+    for (const Operation &operation : function.getOperations()) {
+        if (operation.getKind() == OperationKind::Call ||
+            operation.getKind() == OperationKind::AssignCall) {
+            return &operation;
+        }
+    }
+
+    return nullptr;
+}
+
+} // namespace
 
 Segment::Segment(SegmentKind kind, int start, int size, string label)
     : kind_(kind), start_(start), size_(size), label_(move(label)) {
@@ -72,25 +114,68 @@ void MemoryLayout::loadProgram(const Program &program) {
         writeCell(globals[i].getAddress(), content, i == 0 ? staticData_.getLabel() : "");
     }
 
-    writeCell(4808, "arg: -", stack_.getLabel());
-    writeCell(4809, "ret:4884", "");
-    writeCell(4810, "z=0", "");
-    writeCell(4811, "ret:4876", "");
-    writeCell(4812, "y=0", "");
-    writeCell(4813, "ret:4868", "");
-    writeCell(4814, "x=0", "");
     writeCell(4856, "--", heap_.getLabel());
 
-    const vector<Function> &functions = program.getFunctions();
-    for (int i = 0; i < static_cast<int>(functions.size()); ++i) {
-        writeCell(functions[i].getCodeAddress(),
-                  functions[i].getName() + "()",
-                  i == 0 ? code_.getLabel() : "");
+    const Function *current = findMainFunction(program);
+    int callerReturnAddress = -1;
+    bool stackLabelWritten = false;
+
+    while (current != nullptr) {
+        const vector<Variable> &locals = current->getLocals();
+        if (!locals.empty()) {
+            int headerAddress = locals.front().getAddress() - 1;
+            const string header = callerReturnAddress < 0
+                                      ? "ret:-"
+                                      : "ret:" + to_string(callerReturnAddress);
+            writeCell(headerAddress, header, stackLabelWritten ? "" : stack_.getLabel());
+            stackLabelWritten = true;
+        }
+
+        for (const Variable &local : locals) {
+            writeCell(local.getAddress(), local.getName() + "=" + to_string(local.getValue()), "");
+        }
+
+        const Operation *call = findPrimaryCall(*current);
+        if (call == nullptr) {
+            break;
+        }
+
+        callerReturnAddress = call->getBytecodeAddress() + call->getBytecodeSize();
+        current = findFunctionByName(program, call->getCallee());
+    }
+
+    bool codeLabelWritten = false;
+    for (const Function &function : program.getFunctions()) {
+        for (const Operation &operation : function.getOperations()) {
+            const vector<string> bytes = operation.bytecodeCells();
+            for (int i = 0; i < static_cast<int>(bytes.size()); ++i) {
+                string annotation;
+                if (!codeLabelWritten && i == 0) {
+                    annotation = code_.getLabel();
+                    codeLabelWritten = true;
+                }
+                writeCell(operation.getBytecodeAddress() + i, bytes[i], annotation);
+            }
+        }
     }
 }
 
 void MemoryLayout::print(ostream &out) const {
     const int rows = MEMORY_CELL_COUNT / MEMORY_COLUMN_COUNT;
+    vector<string> renderedCells;
+    renderedCells.reserve(cells_.size());
+    size_t columnWidth = 0;
+
+    for (const MemoryCell &cell : cells_) {
+        ostringstream rendered;
+        rendered << cell.getAddress() << " [" << cell.getContent() << "]";
+        if (!cell.getAnnotation().empty()) {
+            rendered << ' ' << cell.getAnnotation();
+        }
+
+        renderedCells.push_back(rendered.str());
+        columnWidth = max(columnWidth, renderedCells.back().size());
+    }
 
     out << "\nMemory\n";
     out << "------\n";
@@ -98,12 +183,7 @@ void MemoryLayout::print(ostream &out) const {
     for (int row = 0; row < rows; ++row) {
         for (int column = 0; column < MEMORY_COLUMN_COUNT; ++column) {
             const int index = row + (rows * column);
-            const MemoryCell &cell = cells_[index];
-
-            out << cell.getAddress() << " [" << cell.getContent() << "]";
-            if (!cell.getAnnotation().empty()) {
-                out << ' ' << cell.getAnnotation();
-            }
+            out << left << setw(static_cast<int>(columnWidth)) << renderedCells[index];
 
             if (column != MEMORY_COLUMN_COUNT - 1) {
                 out << "  ";
